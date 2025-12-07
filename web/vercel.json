@@ -3,7 +3,4 @@
   "outputDirectory": ".next",
   "framework": "nextjs",
   "regions": ["icn1"],
-  "env": {
-    "OPENAI_API_KEY": "@openai-api-key"
-  }
-}
+ }
