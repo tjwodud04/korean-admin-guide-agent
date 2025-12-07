@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 // 에이전트 정의 (Python 버전과 동일한 구조)
 const AGENTS = {
   triage: {
@@ -102,6 +98,16 @@ function classifyQuestion(question: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // 헤더에서 API Key 가져오기
+    const apiKey = request.headers.get("X-OpenAI-API-Key");
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "API Key가 필요합니다" },
+        { status: 401 }
+      );
+    }
+
     const { message, history = [] } = await request.json();
 
     if (!message) {
@@ -110,6 +116,11 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // 요청마다 새로운 OpenAI 인스턴스 생성 (사용자가 제공한 API Key 사용)
+    const openai = new OpenAI({
+      apiKey: apiKey,
+    });
 
     // 질문 분류
     const agentType = classifyQuestion(message);

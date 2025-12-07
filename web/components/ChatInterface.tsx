@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Loader2, User, Bot, Sparkles } from "lucide-react";
+import ApiKeyInput from "./ApiKeyInput";
 
 interface Message {
   id: string;
@@ -29,6 +30,7 @@ export default function ChatInterface({ onAgentChange }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [apiKey, setApiKey] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -56,7 +58,10 @@ export default function ChatInterface({ onAgentChange }: ChatInterfaceProps) {
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-OpenAI-API-Key": apiKey,
+        },
         body: JSON.stringify({
           message: text,
           history: messages.map((m) => ({ role: m.role, content: m.content })),
@@ -100,6 +105,11 @@ export default function ChatInterface({ onAgentChange }: ChatInterfaceProps) {
       sendMessage();
     }
   };
+
+  // API Key가 없으면 입력 화면 표시
+  if (!apiKey) {
+    return <ApiKeyInput onApiKeySet={setApiKey} />;
+  }
 
   return (
     <div className="bg-white rounded-2xl shadow-lg flex flex-col h-[600px]">
