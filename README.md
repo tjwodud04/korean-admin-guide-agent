@@ -1,16 +1,18 @@
-# 🇰🇷 한국 행정 서비스 가이드 에이전트
+# 🇰🇷 한국 행정 서비스 가이드 에이전트 | Korean Admin Guide Agent
+
+[한국어](#한국어) | [English](#english)
+
+---
+
+# 한국어
 
 OpenAI Agent SDK를 활용한 멀티에이전트 시스템 예제입니다.
 외국인과 청소년이 복잡한 한국 행정 서비스를 쉽게 이해할 수 있도록 도와줍니다.
 
 ## 📌 프로젝트 개요
 
-### 왜 만들었나?
-- 한국 행정 용어는 외국인/청소년에게 어려움 (예: "전입신고", "등본", "체류자격")
-- 분야별로 다른 기관/사이트를 찾아다녀야 하는 불편함
-- OpenAI Agent SDK의 **핸드오프(Handoff)** 기능을 활용한 자연스러운 분야별 전문가 연결
-
 ### 주요 기능
+
 - 🛂 **비자/출입국**: 외국인등록, 체류자격, 비자 연장, 귀화
 - 🏠 **주거/전입신고**: 이사, 전입신고, 임대차 계약, 등본 발급
 - 💰 **세금**: 연말정산, 종합소득세, 홈택스 사용법
@@ -50,39 +52,35 @@ OpenAI Agent SDK를 활용한 멀티에이전트 시스템 예제입니다.
 
 ## 🚀 빠른 시작
 
-### 1. 설치
+### Python CLI 버전
 
 ```bash
-cd openai_agent_sdk_sample
+git clone https://github.com/tjwodud04/korean-admin-guide-agent.git
+cd korean-admin-guide-agent
 pip install -r requirements.txt
-```
-
-### 2. 환경 변수 설정
-
-```bash
-cp .env.example .env
-# .env 파일을 열어 OPENAI_API_KEY 설정
-```
-
-### 3. 실행
-
-```bash
-# 대화형 모드
+cp .env.example .env  # API 키 설정
 python main.py
-
-# 예제 실행
-python examples.py
 ```
+
+### 🌐 웹 버전 (Next.js)
+
+```bash
+cd web
+npm install
+cp .env.example .env  # API 키 설정
+npm run dev
+```
+
+브라우저에서 http://localhost:3000 접속
 
 ## 📁 프로젝트 구조
 
 ```
-openai_agent_sdk_sample/
+korean-admin-guide-agent/
 ├── main.py              # 메인 실행 파일 (대화형 세션)
 ├── examples.py          # 다양한 사용 예제
 ├── requirements.txt     # 의존성 목록
 ├── .env.example         # 환경 변수 템플릿
-├── README.md
 │
 ├── agents/              # 에이전트 모듈
 │   ├── __init__.py
@@ -92,113 +90,176 @@ openai_agent_sdk_sample/
 │   ├── tax.py           # 세금 전문
 │   └── healthcare.py    # 의료/건강보험 전문
 │
-└── tools/               # 도구 모듈
-    ├── __init__.py
-    └── web_search.py    # 정부 사이트 검색, 용어 설명
+├── tools/               # 도구 모듈
+│   ├── __init__.py
+│   └── web_search.py    # 정부 사이트 검색, 용어 설명
+│
+└── web/                 # 🌐 웹 프론트엔드 (Next.js)
+    ├── app/
+    │   ├── api/chat/    # 챗봇 API 엔드포인트
+    │   ├── page.tsx     # 메인 페이지
+    │   └── layout.tsx   # 루트 레이아웃
+    ├── components/
+    │   ├── AgentDiagram.tsx    # 에이전트 구조 시각화
+    │   └── ChatInterface.tsx   # 채팅 인터페이스
+    └── README.md        # 웹 배포 가이드
 ```
 
-## 💡 사용 예시
+## 🌐 Vercel 배포
 
-### 대화 예시
-
-```
-👤 You: 외국인등록증 갱신하려면요?
-
-🤖 Assistant: 외국인등록증 갱신 절차를 안내해드릴게요.
-
-1단계: 준비 서류
-- 여권
-- 외국인등록증
-- 체류자격별 추가 서류 (재직증명서, 재학증명서 등)
-- 수수료 3만원
-
-2단계: 신청 방법
-- 온라인: 하이코리아 (hikorea.go.kr)
-- 오프라인: 관할 출입국관리사무소 방문
-
-3단계: 처리 기간
-- 약 2-3주 소요
-
-💡 팁: 체류기간 만료 4개월 전부터 신청 가능해요!
+```bash
+cd web
+npx vercel
 ```
 
-### 코드 예시
+또는 GitHub 연동 후 Vercel Dashboard에서:
 
-```python
-from agents import Runner
-from agents.triage import triage_agent, setup_handoffs
-
-# 핸드오프 설정
-setup_handoffs()
-
-# 동기 실행
-result = Runner.run_sync(triage_agent, "전입신고 어떻게 해요?")
-print(result.final_output)
-
-# 비동기 실행
-result = await Runner.run(triage_agent, "How to extend my visa?")
-print(result.final_output)
-```
-
-## 🔧 커스터마이징
-
-### 새 에이전트 추가하기
-
-1. `agents/` 폴더에 새 파일 생성 (예: `education.py`)
-
-```python
-from agents import Agent
-from tools import search_government_info
-
-education_agent = Agent(
-    name="Education Expert",
-    instructions="교육 관련 행정 서비스를 안내합니다...",
-    tools=[search_government_info],
-    model="gpt-4o-mini",
-)
-```
-
-2. `agents/triage.py`의 `_get_handoff_agents()`에 추가
-
-```python
-def _get_handoff_agents():
-    from .education import education_agent
-    return [..., education_agent]
-```
-
-### 웹 검색 도구 연동하기
-
-`tools/web_search.py`의 `search_government_info()` 함수에서
-실제 검색 API (Tavily, Serper 등)를 연동하세요:
-
-```python
-@function_tool
-def search_government_info(query: str, category: str = "general") -> str:
-    # Tavily API 예시
-    from tavily import TavilyClient
-    client = TavilyClient(api_key="tvly-...")
-    results = client.search(query, include_domains=["gov.kr", "go.kr"])
-    return results
-```
+1. Root Directory: `web` 설정
+2. 환경 변수 `OPENAI_API_KEY` 추가
 
 ## 📚 참고 자료
 
 ### OpenAI Agent SDK
+
 - [공식 문서](https://openai.github.io/openai-agents-python/)
 - [GitHub](https://github.com/openai/openai-agents-python)
 - [핸드오프 가이드](https://openai.github.io/openai-agents-python/handoffs/)
 
 ### 한국 행정 정보
+
 - [정부24](https://www.gov.kr) - 통합 민원 서비스
 - [하이코리아](https://www.hikorea.go.kr) - 외국인 출입국
 - [국립국어원](https://korean.go.kr) - 행정용어 순화
 - [홈택스](https://www.hometax.go.kr) - 국세
 - [국민건강보험공단](https://www.nhis.or.kr) - 건강보험
 
-## 📄 라이선스
-
-MIT License
-
 ---
 
-Made with ❤️ using OpenAI Agent SDK
+# English
+
+A multi-agent system example built with OpenAI Agent SDK.
+Helps foreigners and young people easily understand complex Korean administrative services.
+
+## 📌 Project Overview
+
+### Key Features
+
+- 🛂 **Visa/Immigration**: Alien registration, status of stay, visa extension, naturalization
+- 🏠 **Housing/Moving**: Moving-in report, lease contracts, resident registration
+- 💰 **Tax**: Year-end tax settlement, income tax, HomeTax guide
+- 🏥 **Healthcare**: National Health Insurance, foreigner insurance, hospital usage
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      User Input                         │
+└─────────────────────┬───────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────┐
+│                   Triage Agent                          │
+│  • Classifies and routes questions                      │
+│  • Directly answers greetings/general questions         │
+└────────┬────────┬────────┬────────┬─────────────────────┘
+         │        │        │        │
+    handoff  handoff  handoff  handoff
+         │        │        │        │
+         ▼        ▼        ▼        ▼
+┌────────┐ ┌──────┐ ┌──────┐ ┌──────────┐
+│  Visa  │ │House │ │ Tax  │ │Healthcare│
+│ Agent  │ │Agent │ │Agent │ │  Agent   │
+└────┬───┘ └───┬──┘ └───┬──┘ └────┬─────┘
+     │         │        │         │
+     └─────────┴────────┴─────────┘
+                    │
+                    ▼
+         ┌─────────────────┐
+         │     Tools       │
+         │ • web_search    │
+         │ • terminology   │
+         └─────────────────┘
+```
+
+## 🚀 Quick Start
+
+### Python CLI Version
+
+```bash
+git clone https://github.com/tjwodud04/korean-admin-guide-agent.git
+cd korean-admin-guide-agent
+pip install -r requirements.txt
+cp .env.example .env  # Set your API key
+python main.py
+```
+
+### 🌐 Web Version (Next.js)
+
+```bash
+cd web
+npm install
+cp .env.example .env  # Set your API key
+npm run dev
+```
+
+Open http://localhost:3000 in your browser
+
+## 📁 Project Structure
+
+```
+korean-admin-guide-agent/
+├── main.py              # Main entry (interactive session)
+├── examples.py          # Various usage examples
+├── requirements.txt     # Dependencies
+├── .env.example         # Environment variable template
+│
+├── agents/              # Agent modules
+│   ├── __init__.py
+│   ├── triage.py        # Triage agent (router)
+│   ├── visa.py          # Visa/Immigration expert
+│   ├── housing.py       # Housing/Moving expert
+│   ├── tax.py           # Tax expert
+│   └── healthcare.py    # Healthcare expert
+│
+├── tools/               # Tool modules
+│   ├── __init__.py
+│   └── web_search.py    # Government site search, terminology
+│
+└── web/                 # 🌐 Web frontend (Next.js)
+    ├── app/
+    │   ├── api/chat/    # Chatbot API endpoint
+    │   ├── page.tsx     # Main page
+    │   └── layout.tsx   # Root layout
+    ├── components/
+    │   ├── AgentDiagram.tsx    # Agent structure visualization
+    │   └── ChatInterface.tsx   # Chat interface
+    └── README.md        # Web deployment guide
+```
+
+## 🌐 Vercel Deployment
+
+```bash
+cd web
+npx vercel
+```
+
+Or connect GitHub and configure in Vercel Dashboard:
+
+1. Set Root Directory: `web`
+2. Add environment variable `OPENAI_API_KEY`
+
+## 📚 References
+
+### OpenAI Agent SDK
+
+- [Official Documentation](https://openai.github.io/openai-agents-python/)
+- [GitHub](https://github.com/openai/openai-agents-python)
+- [Handoffs Guide](https://openai.github.io/openai-agents-python/handoffs/)
+
+### Korean Government Services
+
+- [Government 24](https://www.gov.kr) - Integrated civil service portal
+- [HiKorea](https://www.hikorea.go.kr) - Immigration services for foreigners
+- [National Institute of Korean Language](https://korean.go.kr) - Administrative term simplification
+- [HomeTax](https://www.hometax.go.kr) - National tax service
+- [National Health Insurance](https://www.nhis.or.kr) - Health insurance
