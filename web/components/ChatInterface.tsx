@@ -36,9 +36,23 @@ export default function ChatInterface({ onAgentChange, language }: ChatInterface
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const isUserNearBottomRef = useRef(true);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (force = false) => {
+    if (force || isUserNearBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // 사용자가 스크롤 위치를 변경했는지 확인
+  const handleScroll = () => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // 하단에서 100px 이내면 "near bottom"으로 간주
+      isUserNearBottomRef.current = scrollHeight - scrollTop - clientHeight < 100;
+    }
   };
 
   useEffect(() => {
@@ -58,6 +72,7 @@ export default function ChatInterface({ onAgentChange, language }: ChatInterface
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    isUserNearBottomRef.current = true; // 새 메시지 전송 시 항상 하단으로 스크롤
 
     // 스트리밍을 위한 assistant 메시지 미리 추가
     const assistantMessageId = (Date.now() + 1).toString();
@@ -169,7 +184,11 @@ export default function ChatInterface({ onAgentChange, language }: ChatInterface
       </div>
 
       {/* 메시지 영역 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-4 space-y-4"
+      >
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center mb-4">
