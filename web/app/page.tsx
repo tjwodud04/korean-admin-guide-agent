@@ -7,23 +7,53 @@ import { Github, ExternalLink, Code2 } from "lucide-react";
 
 export default function Home() {
   const [activeAgent, setActiveAgent] = useState<string>("triage");
+  const [language, setLanguage] = useState<"ko" | "en">("ko");
 
   return (
     <main className="min-h-screen py-8 px-4">
       <div className="max-w-6xl mx-auto">
         {/* 헤더 */}
         <header className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full text-blue-600 text-sm font-medium mb-4">
-            <Code2 className="w-4 h-4" />
-            OpenAI Agent SDK Demo
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full text-blue-600 text-sm font-medium">
+              <Code2 className="w-4 h-4" />
+              OpenAI Agent SDK Demo
+            </div>
+
+            {/* 언어 선택 버튼 */}
+            <div className="inline-flex items-center bg-gray-100 rounded-full p-1">
+              <button
+                onClick={() => setLanguage("ko")}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  language === "ko"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                🇰🇷 한국어
+              </button>
+              <button
+                onClick={() => setLanguage("en")}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  language === "en"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                🇺🇸 English
+              </button>
+            </div>
           </div>
+
           <h1 className="text-4xl font-bold text-gray-900 mb-3">
-            🇰🇷 한국 행정 서비스 가이드
+            {language === "en"
+              ? "🇰🇷 Korean Admin Service Guide"
+              : "🇰🇷 한국 행정 서비스 가이드"}
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            외국인과 청소년을 위한 AI 행정 안내 서비스입니다.
-            <br />
-            복잡한 행정 용어를 쉬운 말로 설명해 드립니다.
+            {language === "en"
+              ? "AI administrative guide service for foreigners and youth. We explain complex administrative terms in simple words."
+              : "외국인과 청소년을 위한 AI 행정 안내 서비스입니다. 복잡한 행정 용어를 쉬운 말로 설명해 드립니다."}
           </p>
         </header>
 
@@ -37,27 +67,27 @@ export default function Home() {
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <span className="text-2xl">⚙️</span>
-                기술 스택
+                {language === "en" ? "Tech Stack" : "기술 스택"}
               </h3>
               <div className="space-y-3">
                 <TechItem
                   name="OpenAI Agent SDK"
-                  description="멀티에이전트 핸드오프 구현"
+                  description={language === "en" ? "Multi-agent handoff" : "멀티에이전트 핸드오프 구현"}
                   color="bg-green-500"
                 />
                 <TechItem
-                  name="GPT-4o-mini"
-                  description="빠르고 효율적인 응답 생성"
+                  name="GPT-5.1"
+                  description={language === "en" ? "Fast & efficient responses" : "빠르고 효율적인 응답 생성"}
                   color="bg-purple-500"
                 />
                 <TechItem
                   name="Next.js 14"
-                  description="React 서버 컴포넌트"
+                  description={language === "en" ? "React Server Components" : "React 서버 컴포넌트"}
                   color="bg-black"
                 />
                 <TechItem
-                  name="Tailwind CSS"
-                  description="모던 UI 스타일링"
+                  name="Vercel AI SDK"
+                  description={language === "en" ? "Streaming responses" : "스트리밍 응답 지원"}
                   color="bg-cyan-500"
                 />
               </div>
@@ -67,20 +97,40 @@ export default function Home() {
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <span className="text-2xl">📋</span>
-                상담 가능 분야
+                {language === "en" ? "Consultation Areas" : "상담 가능 분야"}
               </h3>
               <div className="grid grid-cols-2 gap-3">
-                <CategoryCard emoji="🛂" title="비자/출입국" items={["외국인등록", "체류자격 변경", "비자 연장"]} />
-                <CategoryCard emoji="🏠" title="주거/이사" items={["전입신고", "임대차 계약", "등본 발급"]} />
-                <CategoryCard emoji="💰" title="세금" items={["연말정산", "종합소득세", "홈택스 사용"]} />
-                <CategoryCard emoji="🏥" title="의료/건강" items={["건강보험 가입", "병원 이용", "건강검진"]} />
+                <CategoryCard
+                  title={language === "en" ? "Visa/Immigration" : "비자/출입국"}
+                  items={language === "en"
+                    ? ["Alien registration", "Status change", "Visa extension"]
+                    : ["외국인등록", "체류자격 변경", "비자 연장"]}
+                />
+                <CategoryCard
+                  title={language === "en" ? "Housing/Moving" : "주거/이사"}
+                  items={language === "en"
+                    ? ["Moving-in report", "Lease contract", "Certificate"]
+                    : ["전입신고", "임대차 계약", "등본 발급"]}
+                />
+                <CategoryCard
+                  title={language === "en" ? "Tax" : "세금"}
+                  items={language === "en"
+                    ? ["Year-end settlement", "Income tax", "HomeTax"]
+                    : ["연말정산", "종합소득세", "홈택스 사용"]}
+                />
+                <CategoryCard
+                  title={language === "en" ? "Healthcare" : "의료/건강"}
+                  items={language === "en"
+                    ? ["Health insurance", "Hospital", "Checkup"]
+                    : ["건강보험 가입", "병원 이용", "건강검진"]}
+                />
               </div>
             </div>
           </div>
 
           {/* 오른쪽: 채팅 인터페이스 */}
           <div className="lg:col-span-3">
-            <ChatInterface onAgentChange={setActiveAgent} />
+            <ChatInterface onAgentChange={setActiveAgent} language={language} />
           </div>
         </div>
 
@@ -136,18 +186,15 @@ function TechItem({
 }
 
 function CategoryCard({
-  emoji,
   title,
   items,
 }: {
-  emoji: string;
   title: string;
   items: string[];
 }) {
   return (
     <div className="p-3 bg-gray-50 rounded-xl">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-xl">{emoji}</span>
         <span className="font-semibold text-gray-800 text-sm">{title}</span>
       </div>
       <ul className="text-xs text-gray-600 space-y-1">

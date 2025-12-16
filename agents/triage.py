@@ -88,7 +88,7 @@ triage_agent = Agent(
     name="Admin Guide",
     instructions=TRIAGE_INSTRUCTIONS,
     tools=[get_terminology_explanation],
-    model="gpt-4o-mini",
+    model="gpt-5.1",
 )
 
 

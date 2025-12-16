@@ -43,5 +43,5 @@ visa_agent = Agent(
     name="Visa Expert",
     instructions=VISA_INSTRUCTIONS,
     tools=[search_government_info, get_terminology_explanation],
-    model="gpt-4o-mini",
+    model="gpt-5.1",
 )

@@ -9,28 +9,32 @@ interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
-  agent?: {
-    name: string;
-    emoji: string;
-  };
 }
 
 interface ChatInterfaceProps {
   onAgentChange?: (agentType: string) => void;
+  language: "ko" | "en";
 }
 
-const EXAMPLE_QUESTIONS = [
-  { emoji: "🛂", text: "외국인등록증 갱신하려면요?", category: "visa" },
-  { emoji: "🏠", text: "이사했는데 뭐 해야 해요?", category: "housing" },
-  { emoji: "💰", text: "연말정산이 뭐예요?", category: "tax" },
-  { emoji: "🏥", text: "건강보험료 납부 방법은?", category: "healthcare" },
+const EXAMPLE_QUESTIONS_KO = [
+  { text: "외국인등록증 갱신하려면요?", category: "visa" },
+  { text: "이사했는데 뭐 해야 해요?", category: "housing" },
+  { text: "연말정산이 뭐예요?", category: "tax" },
+  { text: "건강보험료 납부 방법은?", category: "healthcare" },
 ];
 
-export default function ChatInterface({ onAgentChange }: ChatInterfaceProps) {
+const EXAMPLE_QUESTIONS_EN = [
+  { text: "How do I renew my alien registration card?", category: "visa" },
+  { text: "I just moved. What should I do?", category: "housing" },
+  { text: "What is year-end tax settlement?", category: "tax" },
+  { text: "How do I pay health insurance?", category: "healthcare" },
+];
+
+export default function ChatInterface({ onAgentChange, language }: ChatInterfaceProps) {
+  const [apiKey, setApiKey] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -55,6 +59,13 @@ export default function ChatInterface({ onAgentChange }: ChatInterfaceProps) {
     setInput("");
     setIsLoading(true);
 
+    // 스트리밍을 위한 assistant 메시지 미리 추가
+    const assistantMessageId = (Date.now() + 1).toString();
+    setMessages((prev) => [
+      ...prev,
+      { id: assistantMessageId, role: "assistant", content: "" },
+    ]);
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -63,48 +74,75 @@ export default function ChatInterface({ onAgentChange }: ChatInterfaceProps) {
           "X-OpenAI-API-Key": apiKey,
         },
         body: JSON.stringify({
-          message: text,
-          history: messages.map((m) => ({ role: m.role, content: m.content })),
+          messages: [...messages, userMessage].map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          language,
         }),
       });
 
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
+      // 에이전트 타입 가져오기
+      const agentType = response.headers.get("X-Agent-Type");
+      if (onAgentChange && agentType) {
+        onAgentChange(agentType);
       }
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.response,
-        agent: data.agent,
-      };
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "요청 실패");
+      }
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      // 스트리밍 응답 처리
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
 
-      if (onAgentChange && data.agentType) {
-        onAgentChange(data.agentType);
+      if (reader) {
+        let accumulatedContent = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          accumulatedContent += chunk;
+
+          // 메시지 업데이트
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMessageId
+                ? { ...m, content: accumulatedContent }
+                : m
+            )
+          );
+        }
       }
     } catch (error) {
       console.error("Error:", error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMessageId
+            ? {
+                ...m,
+                content:
+                  language === "en"
+                    ? "Sorry, an error occurred. Please try again."
+                    : "죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.",
+              }
+            : m
+        )
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendMessage();
   };
+
+  const exampleQuestions = language === "en" ? EXAMPLE_QUESTIONS_EN : EXAMPLE_QUESTIONS_KO;
 
   // API Key가 없으면 입력 화면 표시
   if (!apiKey) {
@@ -120,8 +158,12 @@ export default function ChatInterface({ onAgentChange }: ChatInterfaceProps) {
             <Bot className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="font-bold text-gray-800">행정 서비스 가이드</h2>
-            <p className="text-xs text-gray-500">무엇이든 물어보세요</p>
+            <h2 className="font-bold text-gray-800">
+              {language === "en" ? "Admin Service Guide" : "행정 서비스 가이드"}
+            </h2>
+            <p className="text-xs text-gray-500">
+              {language === "en" ? "Ask me anything" : "무엇이든 물어보세요"}
+            </p>
           </div>
         </div>
       </div>
@@ -134,23 +176,23 @@ export default function ChatInterface({ onAgentChange }: ChatInterfaceProps) {
               <Sparkles className="w-8 h-8 text-blue-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              안녕하세요! 👋
+              {language === "en" ? "Hello! 👋" : "안녕하세요! 👋"}
             </h3>
             <p className="text-gray-500 text-sm mb-6 max-w-xs">
-              한국 행정 서비스에 대해 무엇이든 물어보세요.
-              <br />
-              쉬운 말로 설명해 드릴게요.
+              {language === "en"
+                ? "Ask me anything about Korean administrative services. I'll explain it simply."
+                : "한국 행정 서비스에 대해 무엇이든 물어보세요. 쉬운 말로 설명해 드릴게요."}
             </p>
 
             {/* 예시 질문 */}
-            <div className="grid grid-cols-2 gap-2 w-full max-w-sm">
-              {EXAMPLE_QUESTIONS.map((q, i) => (
+            <div className="grid grid-cols-1 gap-2 w-full max-w-sm">
+              {exampleQuestions.map((q, i) => (
                 <button
                   key={i}
                   onClick={() => sendMessage(q.text)}
-                  className="p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-sm"
+                  disabled={isLoading}
+                  className="p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-sm disabled:opacity-50"
                 >
-                  <span className="text-lg mr-2">{q.emoji}</span>
                   <span className="text-gray-700">{q.text}</span>
                 </button>
               ))}
@@ -179,8 +221,6 @@ export default function ChatInterface({ onAgentChange }: ChatInterfaceProps) {
                   >
                     {message.role === "user" ? (
                       <User className="w-4 h-4 text-white" />
-                    ) : message.agent ? (
-                      <span className="text-sm">{message.agent.emoji}</span>
                     ) : (
                       <Bot className="w-4 h-4 text-white" />
                     )}
@@ -194,14 +234,10 @@ export default function ChatInterface({ onAgentChange }: ChatInterfaceProps) {
                         : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {message.agent && message.role === "assistant" && (
-                      <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
-                        <span>{message.agent.emoji}</span>
-                        <span>{message.agent.name}</span>
-                      </div>
-                    )}
                     <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                      {message.content}
+                      {message.content || (
+                        <span className="text-gray-400">...</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -211,7 +247,7 @@ export default function ChatInterface({ onAgentChange }: ChatInterfaceProps) {
         )}
 
         {/* 로딩 인디케이터 */}
-        {isLoading && (
+        {isLoading && messages[messages.length - 1]?.content === "" && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -223,9 +259,9 @@ export default function ChatInterface({ onAgentChange }: ChatInterfaceProps) {
               </div>
               <div className="bg-gray-100 rounded-2xl px-4 py-3">
                 <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
                 </div>
               </div>
             </div>
@@ -237,18 +273,17 @@ export default function ChatInterface({ onAgentChange }: ChatInterfaceProps) {
 
       {/* 입력 영역 */}
       <div className="p-4 border-t border-gray-100">
-        <div className="flex gap-2">
+        <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="질문을 입력하세요..."
+            placeholder={language === "en" ? "Type your question..." : "질문을 입력하세요..."}
             disabled={isLoading}
             className="flex-1 px-4 py-3 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
           />
           <button
-            onClick={() => sendMessage()}
+            type="submit"
             disabled={!input.trim() || isLoading}
             className="px-4 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-xl transition-colors flex items-center justify-center"
           >
@@ -258,9 +293,9 @@ export default function ChatInterface({ onAgentChange }: ChatInterfaceProps) {
               <Send className="w-5 h-5" />
             )}
           </button>
-        </div>
+        </form>
         <p className="text-xs text-gray-400 mt-2 text-center">
-          Enter로 전송 • OpenAI Agent SDK 데모
+          {language === "en" ? "Press Enter to send • GPT-5.1" : "Enter로 전송 • GPT-5.1"}
         </p>
       </div>
     </div>
